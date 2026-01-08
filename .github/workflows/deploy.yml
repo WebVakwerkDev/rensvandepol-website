@@ -1,76 +1,39 @@
-name: Build and Deploy
+name: Deploy (git pull + docker compose)
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  deploy:
+    runs-on: [self-hosted]
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-      - name: Log in to Docker Hub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      - name: Show docker versions
+        run: |
+          docker --version
+          docker compose version
 
-      - name: Build the Docker image
-        run: docker build -t stijn0vp/mcp-color-web:latest .
-
-      - name: Push Docker image to Docker Hub
-        run: docker push stijn0vp/mcp-color-web:latest
-
-  deploy:
-    runs-on: [self-hosted]
-    needs: build
-
-    steps:
-      - name: Deploy container
-        env:
-          # Zet deze in GitHub -> Settings -> Secrets and variables -> Actions
-          # Aanrader: MCP_URL als secret of variable
-          MCP_URL: ${{ secrets.MCP_URL }}
-          # Optioneel: als jouw MCP endpoint auth vereist
-          MCP_BEARER_TOKEN: ${{ secrets.MCP_BEARER_TOKEN }}
-          # Optioneel: origin restrictie (bijv. https://demo.jouwdomein.nl)
-          ALLOW_ORIGIN: ${{ secrets.ALLOW_ORIGIN }}
+      - name: Deploy with Docker Compose
+        shell: bash
         run: |
           set -e
 
-          CONTAINER_NAME="mcp-color-web"
-          IMAGE="stijn0vp/mcp-color-web:latest"
-          HOST_PORT="8081"
-          CONTAINER_PORT="8080"
+          # Ga ervan uit dat docker-compose.yml in repo root staat
+          # (staat in jouw repo root). :contentReference[oaicite:1]{index=1}
 
-          if [ -z "$MCP_URL" ]; then
-            echo "ERROR: MCP_URL is empty. Set secrets.MCP_URL to something like https://mcp.jouwdomein.nl/mcp"
-            exit 1
-          fi
+          echo "Pull (if images are remote) and build (if Dockerfiles exist)..."
+          docker compose pull || true
+          docker compose build --pull
 
-          echo "Stopping/removing old container if it exists..."
-          docker ps -q -f name=${CONTAINER_NAME} && docker stop ${CONTAINER_NAME} || echo "Container ${CONTAINER_NAME} is not running"
-          docker ps -a -q -f name=${CONTAINER_NAME} && docker rm ${CONTAINER_NAME} || echo "Container ${CONTAINER_NAME} does not exist"
+          echo "Start / recreate stack..."
+          docker compose up -d --remove-orphans
 
-          echo "Pull latest image..."
-          docker pull ${IMAGE}
-
-          echo "Starting new container..."
-          # Bouw env flags dynamisch zodat secrets die leeg zijn niet fout gedrag geven
-          ENV_FLAGS="-e MCP_URL=${MCP_URL}"
-          if [ -n "$MCP_BEARER_TOKEN" ]; then
-            ENV_FLAGS="${ENV_FLAGS} -e MCP_BEARER_TOKEN=${MCP_BEARER_TOKEN}"
-          fi
-          if [ -n "$ALLOW_ORIGIN" ]; then
-            ENV_FLAGS="${ENV_FLAGS} -e ALLOW_ORIGIN=${ALLOW_ORIGIN}"
-          fi
-
-          docker run --restart always -d \
-            -p ${HOST_PORT}:${CONTAINER_PORT} \
-            ${ENV_FLAGS} \
-            --name ${CONTAINER_NAME} \
-            ${IMAGE}
-
-          echo "Deployed. Containers:"
-          docker ps -a | grep ${CONTAINER_NAME} || true
+          echo "Running containers:"
+          docker compose ps
