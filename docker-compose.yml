@@ -1,17 +1,21 @@
 services:
-  web:
-    build: ./web
-    container_name: mcp-color-web
-    environment:
-      # Jouw bestaande (tunnel) MCP endpoint:
-      # voorbeeld: https://mcp.jouwdomein.nl/mcp
-      - MCP_URL=${MCP_URL}
-
-      # Optioneel (sterk aangeraden): auth header richting MCP (als jij die afdwingt)
-      # - MCP_BEARER_TOKEN=${MCP_BEARER_TOKEN}
-
-      # Optioneel: laat alleen jouw domein de wijzig-call doen (server-side check)
-      - ALLOW_ORIGIN=https://mcp.stijnvandepol.nl
+  backend:
+    build: ./backend
     ports:
-      - "8080:8080"
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
     restart: unless-stopped
+    volumes:
+      - color-data:/app/data
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  color-data:
