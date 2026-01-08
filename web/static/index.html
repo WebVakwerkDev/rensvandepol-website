@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MCP Color Demo</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body {
+      display: grid;
+      place-items: center;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      transition: background-color 250ms linear;
+    }
+    .card {
+      background: rgba(255,255,255,.86);
+      border-radius: 14px;
+      padding: 18px 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.15);
+      min-width: 300px;
+    }
+    .row { display:flex; gap:10px; align-items:center; margin-top: 12px; }
+    input { padding: 10px; border-radius: 10px; border: 1px solid #ccc; width: 170px; }
+    button { padding: 10px 12px; border-radius: 10px; border: 0; cursor: pointer; }
+    code { font-size: 13px; }
+    .small { font-size: 13px; opacity: .8; margin-top: 10px; line-height: 1.35; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div><strong>Huidige kleur:</strong> <code id="cur">...</code></div>
+
+    <div class="row">
+      <input id="inp" placeholder="#2d6cdf of red" />
+      <button id="btn">Wijzig</button>
+    </div>
+
+    <div class="small">
+      De pagina haalt elke seconde de kleur op via <code>/api/color</code>.<br/>
+      De server roept daarachter jouw remote MCP tool aan.
+    </div>
+  </div>
+
+<script>
+  const cur = document.getElementById("cur");
+  const inp = document.getElementById("inp");
+  const btn = document.getElementById("btn");
+
+  async function refresh() {
+    try {
+      const r = await fetch("/api/color", { cache: "no-store" });
+      const j = await r.json();
+      const color = j?.color || "#000000";
+      document.body.style.backgroundColor = color;
+      cur.textContent = color;
+    } catch {}
+  }
+
+  btn.addEventListener("click", async () => {
+    const color = inp.value.trim();
+    const r = await fetch("/api/color", {
+      method: "POST",
+      headers: {"content-type":"application/json"},
+      body: JSON.stringify({ color })
+    });
+    if (!r.ok) {
+      const t = await r.text();
+      alert(t || "failed");
+    }
+    await refresh();
+  });
+
+  refresh();
+  setInterval(refresh, 1000);
+</script>
+</body>
+</html>
