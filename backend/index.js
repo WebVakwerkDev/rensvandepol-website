@@ -1,5 +1,6 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
@@ -134,6 +135,20 @@ app.post('/api/color', (req, res) => {
   }
   saveColor(color);
   res.json({ color: currentColor });
+});
+
+// SSE Support voor remote MCP clients
+let transport;
+app.get('/sse', async (req, res) => {
+  console.log('Nieuwe MCP SSE verbinding...');
+  transport = new SSEServerTransport("/messages", res);
+  await server.connect(transport);
+});
+
+app.post('/messages', async (req, res) => {
+  if (transport) {
+    await transport.handlePostMessage(req, res);
+  }
 });
 
 const PORT = process.env.PORT || 3000;
