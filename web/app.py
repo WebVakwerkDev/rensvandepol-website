@@ -40,14 +40,10 @@ async def call_tool(tool_name: str, args: dict):
     headers = _mcp_headers()
 
     # httpx client is injected so we can pass headers, timeouts, etc.
-    async with httpx.AsyncClient(headers=headers, timeout=15.0) as http_client:
-        async with streamablehttp_client(MCP_URL, http_client=http_client) as (read, write):
-            async with ClientSession(read, write) as session:
-                await session.initialize()
-                result = await session.call_tool(tool_name, args)
-                # result.content is typically a list of content blocks; we’ll normalize to text/json-ish
-                return result
-
+    async with streamablehttp_client(MCP_URL) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            return await session.call_tool(tool_name, args)
 
 @app.get("/")
 async def root():
@@ -56,23 +52,22 @@ async def root():
 
 @app.get("/api/color")
 async def get_color():
-    # Expect your MCP server to expose a tool named "get_color"
-    res = await call_tool("get_color", {})
-    # Try to return the first text block as JSON if possible.
+    try:
+        res = await call_tool("get_color", {})
+    except Exception as e:
+        return {"error": str(e), "color": "#000000"}
+
     if not res.content:
         return {"color": "#000000"}
 
     block = res.content[0]
-    # Many servers return {"type":"text","text":"{...json...}"}
     text = getattr(block, "text", None) or (block.get("text") if isinstance(block, dict) else None)
     if not text:
         return {"color": "#000000"}
 
-    # best effort parse
     import json
     try:
-        obj = json.loads(text)
-        return obj
+        return json.loads(text)
     except Exception:
         return {"color": text}
 
@@ -86,8 +81,10 @@ async def set_color(req: Request):
     if not color:
         raise HTTPException(status_code=400, detail="Missing color")
 
-    # Expect your MCP server to expose a tool named "set_color" with arg "color"
-    res = await call_tool("set_color", {"color": color})
+    try:
+        res = await call_tool("set_color", {"color": color})
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
     if not res.content:
         return {"ok": True, "color": color}
