@@ -42,112 +42,102 @@ function saveColor(color) {
 
 loadColor();
 
-// MCP Server setup
-const server = new Server(
-  {
-    name: "color-controller",
-    version: "1.0.0",
-  },
-  {
-    capabilities: {
-      tools: {},
+// MCP Server Factory
+function createMCPServer() {
+  const server = new Server(
+    {
+      name: "color-controller",
+      version: "1.0.0",
     },
-  }
-);
+    {
+      capabilities: {
+        tools: {},
+      },
+    }
+  );
 
-// Tool registratie
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return {
-    tools: [
-      {
-        name: "change_color",
-        description: "Verander de kleur van de webpagina. Ondersteunt alle CSS kleurnamen en hex codes.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            color: {
-              type: "string",
-              description: "De nieuwe kleur (bijv. 'red', 'blue', '#FF5733')",
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    return {
+      tools: [
+        {
+          name: "change_color",
+          description: "Verander de kleur van de webpagina. Ondersteunt alle CSS kleurnamen en hex codes.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              color: {
+                type: "string",
+                description: "De nieuwe kleur (bijv. 'red', 'blue', '#FF5733')",
+              },
             },
+            required: ["color"],
           },
-          required: ["color"],
         },
-      },
-      {
-        name: "get_current_color",
-        description: "Haal de huidige kleur van de webpagina op",
-        inputSchema: {
-          type: "object",
-          properties: {},
-        },
-      },
-    ],
-  };
-});
-
-// Tool execution
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  if (request.params.name === "change_color") {
-    const color = request.params.arguments.color;
-    saveColor(color);
-    return {
-      content: [
         {
-          type: "text",
-          text: `Kleur succesvol veranderd naar: ${color}`,
+          name: "get_current_color",
+          description: "Haal de huidige kleur van de webpagina op",
+          inputSchema: {
+            type: "object",
+            properties: {},
+          },
         },
       ],
     };
-  } else if (request.params.name === "get_current_color") {
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Huidige kleur: ${currentColor}`,
-        },
-      ],
-    };
-  }
-  
-  throw new Error(`Onbekende tool: ${request.params.name}`);
-});
+  });
 
-// Start MCP server via stdio
-async function startMCPServer() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.log("MCP Color Controller Server draait op stdio");
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    if (request.params.name === "change_color") {
+      const color = request.params.arguments.color;
+      saveColor(color);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Kleur succesvol veranderd naar: ${color}`,
+          },
+        ],
+      };
+    } else if (request.params.name === "get_current_color") {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Huidige kleur: ${currentColor}`,
+          },
+        ],
+      };
+    }
+    throw new Error(`Onbekende tool: ${request.params.name}`);
+  });
+
+  return server;
 }
-
-// HTTP API voor frontend
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-app.get('/api/color', (req, res) => {
-  res.json({ color: currentColor });
-});
-
-app.post('/api/color', (req, res) => {
-  const { color } = req.body;
-  if (!color) {
-    return res.status(400).json({ error: 'Kleur is verplicht' });
-  }
-  saveColor(color);
-  res.json({ color: currentColor });
-});
 
 // SSE Support voor remote MCP clients
 let transport;
 app.get('/sse', async (req, res) => {
-  console.log('Nieuwe MCP SSE verbinding...');
-  transport = new SSEServerTransport("/messages", res);
-  await server.connect(transport);
+  console.log('Nieuwe MCP SSE verbinding ontvangen');
+  try {
+    transport = new SSEServerTransport("/messages", res);
+    const server = createMCPServer();
+    await server.connect(transport);
+    console.log('MCP Server verbonden met transport');
+  } catch (err) {
+    console.error('Fout bij opzetten SSE verbinding:', err);
+    res.status(500).end();
+  }
 });
 
 app.post('/messages', async (req, res) => {
   if (transport) {
-    await transport.handlePostMessage(req, res);
+    try {
+      await transport.handlePostMessage(req, res);
+    } catch (err) {
+      console.error('Fout bij verwerken message:', err);
+      res.status(500).json({ error: err.message });
+    }
+  } else {
+    res.status(404).send("Geen actieve sessie");
   }
 });
 
