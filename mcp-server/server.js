@@ -234,6 +234,94 @@ app.get('/health', (req, res) => {
     });
 });
 
+// OpenAPI schema for ChatGPT
+app.get('/openapi.json', (req, res) => {
+    res.json({
+        "openapi": "3.1.0",
+        "info": {
+            "title": "MCP Color Control API",
+            "description": "API om de kleur van een webpagina te besturen via AI",
+            "version": "1.0.0"
+        },
+        "servers": [
+            {
+                "url": "https://mcp.stijnvandepol.nl"
+            }
+        ],
+        "paths": {
+            "/mcp/tools": {
+                "get": {
+                    "summary": "List available tools",
+                    "description": "Get a list of all available MCP tools",
+                    "operationId": "listTools",
+                    "responses": {
+                        "200": {
+                            "description": "List of available tools",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "tools": {
+                                                "type": "array"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "/mcp/call": {
+                "post": {
+                    "summary": "Call a tool",
+                    "description": "Execute an MCP tool",
+                    "operationId": "callTool",
+                    "requestBody": {
+                        "required": true,
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {
+                                            "type": "string",
+                                            "description": "Tool name: change_color or get_current_color"
+                                        },
+                                        "arguments": {
+                                            "type": "object",
+                                            "properties": {
+                                                "color": {
+                                                    "type": "string",
+                                                    "description": "Color name (Dutch or English): rood, blauw, groen, geel, paars, oranje, roze, zwart, wit, grijs, cyaan, magenta, bruin"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "required": ["name"]
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "Tool execution result",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+
 // Root endpoint - Server info
 app.get('/', (req, res) => {
     res.json({
@@ -244,14 +332,15 @@ app.get('/', (req, res) => {
         mcp: {
             discovery: '/.well-known/mcp',
             tools: '/mcp/tools',
-            call: '/mcp/call'
+            call: '/mcp/call',
+            openapi: '/openapi.json'
         },
         legacy_api: {
             'GET /api/color': 'Get current color',
             'POST /api/color/change': 'Change color'
         },
         usage: {
-            chatgpt: 'Connect ChatGPT to https://mcp.stijnvandepol.nl',
+            chatgpt: 'Connect ChatGPT to https://mcp.stijnvandepol.nl or use /openapi.json for Actions',
             description: 'Use tools: change_color and get_current_color'
         }
     });
