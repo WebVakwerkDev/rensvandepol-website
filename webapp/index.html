@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Color Display</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Arial', sans-serif;
+            transition: background-color 0.5s ease;
+            overflow: hidden;
+        }
+
+        .color-name {
+            font-size: 8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            transition: color 0.5s ease;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .color-hex {
+            font-size: 3rem;
+            margin-top: 2rem;
+            opacity: 0.8;
+            font-family: 'Courier New', monospace;
+            transition: color 0.5s ease;
+        }
+
+        .status {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 2rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            color: white;
+            font-size: 0.9rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .status.connected {
+            background: rgba(0, 200, 0, 0.3);
+        }
+
+        .status.disconnected {
+            background: rgba(200, 0, 0, 0.3);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .color-name.changing {
+            animation: pulse 0.5s ease;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .color-name {
+                font-size: 4rem;
+            }
+            .color-hex {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="color-name" id="colorName">BLAUW</div>
+    <div class="color-hex" id="colorHex">#0000FF</div>
+    <div class="status connected" id="status">Verbonden met MCP</div>
+
+    <script>
+        const API_URL = window.location.protocol + '//' + window.location.hostname + ':3000';
+        const colorNameEl = document.getElementById('colorName');
+        const colorHexEl = document.getElementById('colorHex');
+        const statusEl = document.getElementById('status');
+        let currentColor = null;
+
+        // Bereken contrast kleur voor tekst
+        function getContrastColor(hexColor) {
+            // Verwijder # als aanwezig
+            const hex = hexColor.replace('#', '');
+
+            // Converteer naar RGB
+            const r = parseInt(hex.substr(0, 2), 16);
+            const g = parseInt(hex.substr(2, 2), 16);
+            const b = parseInt(hex.substr(4, 2), 16);
+
+            // Bereken luminance
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+            // Return zwart of wit op basis van luminance
+            return luminance > 0.5 ? '#000000' : '#FFFFFF';
+        }
+
+        // Update de pagina met nieuwe kleur
+        function updateColor(colorData) {
+            if (!colorData) return;
+
+            // Prevent unnecessary updates
+            if (currentColor &&
+                currentColor.hex === colorData.hex &&
+                currentColor.name === colorData.name) {
+                return;
+            }
+
+            currentColor = colorData;
+
+            // Trigger animation
+            colorNameEl.classList.add('changing');
+            setTimeout(() => {
+                colorNameEl.classList.remove('changing');
+            }, 500);
+
+            // Update background color
+            document.body.style.backgroundColor = colorData.hex;
+
+            // Update text
+            colorNameEl.textContent = colorData.name.toUpperCase();
+            colorHexEl.textContent = colorData.hex;
+
+            // Update text color based on contrast
+            const textColor = getContrastColor(colorData.hex);
+            colorNameEl.style.color = textColor;
+            colorHexEl.style.color = textColor;
+
+            console.log(`Color updated: ${colorData.name} (${colorData.hex})`);
+        }
+
+        // Poll voor updates
+        async function checkColor() {
+            try {
+                const response = await fetch(`${API_URL}/api/color`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                updateColor(data);
+
+                // Update status
+                statusEl.textContent = 'Verbonden met MCP';
+                statusEl.className = 'status connected';
+
+            } catch (error) {
+                console.error('Error fetching color:', error);
+                statusEl.textContent = 'Verbinding verbroken';
+                statusEl.className = 'status disconnected';
+            }
+        }
+
+        // Initial load
+        checkColor();
+
+        // Poll elke 500ms voor snelle updates
+        setInterval(checkColor, 500);
+
+        // Log connection info
+        console.log('MCP Color Display initialized');
+        console.log('API URL:', API_URL);
+    </script>
+</body>
+</html>
