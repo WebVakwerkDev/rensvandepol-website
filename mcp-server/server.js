@@ -2,9 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 const app = express();
 const PORT = 3000;
@@ -25,7 +22,7 @@ let currentColor = { color: 'blue', hex: '#0000FF', name: 'blauw' };
 if (fs.existsSync(STATE_FILE)) {
     try {
         currentColor = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
-        console.error('Loaded color state:', currentColor);
+        console.log('Loaded color state:', currentColor);
     } catch (e) {
         console.error('Error loading state:', e);
     }
@@ -36,7 +33,14 @@ function saveState() {
     fs.writeFileSync(STATE_FILE, JSON.stringify(currentColor, null, 2));
 }
 
-app.use(cors());
+// CORS configuratie - belangrijk voor ChatGPT
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: false
+}));
+
 app.use(express.json());
 
 // Kleur mapping
@@ -69,56 +73,71 @@ const colorMap = {
     'brown': { color: 'brown', hex: '#8B4513', name: 'bruin' }
 };
 
-// Create MCP Server instance
-const mcpServer = new Server(
-    {
-        name: 'color-control-server',
-        version: '1.0.0',
-    },
-    {
-        capabilities: {
-            tools: {},
-        },
-    }
-);
+// ============================================
+// MCP HTTP ENDPOINTS (voor ChatGPT)
+// ============================================
 
-// Register MCP tool handlers
-mcpServer.setRequestHandler(ListToolsRequestSchema, async () => {
-    return {
-        tools: [
+// GET /.well-known/mcp - MCP Discovery endpoint
+app.get('/.well-known/mcp', (req, res) => {
+    res.json({
+        "protocol_version": "1.0",
+        "server_info": {
+            "name": "color-control-server",
+            "version": "1.0.0",
+            "description": "MCP server voor het besturen van webpagina kleuren via AI"
+        },
+        "capabilities": {
+            "tools": true
+        },
+        "endpoints": {
+            "tools": "/mcp/tools",
+            "call_tool": "/mcp/call"
+        }
+    });
+});
+
+// GET /mcp/tools - List available tools
+app.get('/mcp/tools', (req, res) => {
+    res.json({
+        "tools": [
             {
-                name: 'change_color',
-                description: 'Verander de kleur van de webpagina naar een specifieke kleur. Beschikbare kleuren: rood, blauw, groen, geel, paars, oranje, roze, zwart, wit, grijs, cyaan, magenta, bruin',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        color: {
-                            type: 'string',
-                            description: 'De naam van de kleur (Nederlands of Engels)',
+                "name": "change_color",
+                "description": "Verander de kleur van de webpagina naar een specifieke kleur. Beschikbare kleuren: rood, blauw, groen, geel, paars, oranje, roze, zwart, wit, grijs, cyaan, magenta, bruin (of Engels equivalent)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "color": {
+                            "type": "string",
+                            "description": "De naam van de kleur (Nederlands of Engels)"
                         }
                     },
-                    required: ['color']
+                    "required": ["color"]
                 }
             },
             {
-                name: 'get_current_color',
-                description: 'Krijg de huidige kleur van de webpagina',
-                inputSchema: {
-                    type: 'object',
-                    properties: {}
+                "name": "get_current_color",
+                "description": "Krijg de huidige kleur van de webpagina",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {}
                 }
             }
         ]
-    };
+    });
 });
 
-mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name, arguments: args } = request.params;
+// POST /mcp/call - Call a tool
+app.post('/mcp/call', (req, res) => {
+    const { name, arguments: args } = req.body;
+
+    console.log(`[MCP] Tool called: ${name}`, args);
 
     try {
         if (name === 'change_color') {
             if (!args || !args.color) {
-                throw new Error('Color parameter is required');
+                return res.status(400).json({
+                    "error": "Color parameter is required"
+                });
             }
 
             const colorKey = args.color.toLowerCase().trim();
@@ -126,77 +145,54 @@ mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
 
             if (!newColor) {
                 const availableColors = Object.keys(colorMap).filter((_, i) => i % 2 === 0);
-                throw new Error(`Onbekende kleur: ${args.color}. Beschikbare kleuren: ${availableColors.join(', ')}`);
+                return res.status(400).json({
+                    "error": `Onbekende kleur: ${args.color}`,
+                    "available_colors": availableColors
+                });
             }
 
             currentColor = newColor;
             saveState();
 
-            console.error(`[MCP] Color changed to: ${currentColor.name} (${currentColor.hex})`);
+            console.log(`[MCP] Color changed to: ${currentColor.name} (${currentColor.hex})`);
 
-            return {
-                content: [
-                    {
-                        type: 'text',
-                        text: `✅ Kleur succesvol veranderd naar ${currentColor.name} (${currentColor.hex}). Bekijk het resultaat op de webpagina!`
-                    }
-                ]
-            };
+            return res.json({
+                "success": true,
+                "result": `✅ Kleur succesvol veranderd naar ${currentColor.name} (${currentColor.hex}). De webpagina toont nu deze kleur!`,
+                "color": currentColor
+            });
         }
 
         if (name === 'get_current_color') {
-            return {
-                content: [
-                    {
-                        type: 'text',
-                        text: `De huidige kleur is ${currentColor.name} (${currentColor.hex})`
-                    }
-                ]
-            };
+            return res.json({
+                "success": true,
+                "result": `De huidige kleur is ${currentColor.name} (${currentColor.hex})`,
+                "color": currentColor
+            });
         }
 
-        throw new Error(`Unknown tool: ${name}`);
+        return res.status(404).json({
+            "error": `Unknown tool: ${name}`
+        });
+
     } catch (error) {
-        return {
-            content: [
-                {
-                    type: 'text',
-                    text: `Error: ${error.message}`
-                }
-            ],
-            isError: true
-        };
+        console.error('[MCP] Error:', error);
+        return res.status(500).json({
+            "error": error.message
+        });
     }
 });
 
-// MCP SSE endpoint
-app.get('/sse', async (req, res) => {
-    console.error('[MCP] New SSE connection established');
+// ============================================
+// LEGACY REST API ENDPOINTS
+// ============================================
 
-    const transport = new SSEServerTransport('/message', res);
-    await mcpServer.connect(transport);
-
-    // Keep connection alive
-    res.on('close', () => {
-        console.error('[MCP] SSE connection closed');
-    });
-});
-
-// MCP message handler
-app.post('/message', async (req, res) => {
-    console.error('[MCP] Received message:', JSON.stringify(req.body).substring(0, 200));
-    // SSE transport handles the message
-    res.status(200).end();
-});
-
-// Legacy REST API endpoints (backwards compatibility)
-
-// 1. Get current color
+// GET /api/color - Huidige kleur ophalen
 app.get('/api/color', (req, res) => {
     res.json(currentColor);
 });
 
-// 2. Change color - REST API endpoint
+// POST /api/color/change - Kleur veranderen
 app.post('/api/color/change', (req, res) => {
     const { color } = req.body;
 
@@ -220,7 +216,7 @@ app.post('/api/color/change', (req, res) => {
     currentColor = newColor;
     saveState();
 
-    console.error(`Color changed to: ${currentColor.name} (${currentColor.hex})`);
+    console.log(`[API] Color changed to: ${currentColor.name} (${currentColor.hex})`);
 
     res.json({
         success: true,
@@ -231,33 +227,41 @@ app.post('/api/color/change', (req, res) => {
 
 // Health check
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', color: currentColor.name });
+    res.json({
+        status: 'ok',
+        color: currentColor.name,
+        mcp: 'enabled'
+    });
 });
 
-// Info endpoint
+// Root endpoint - Server info
 app.get('/', (req, res) => {
     res.json({
         service: 'MCP Color Server',
         version: '1.0.0',
+        protocol: 'HTTP MCP',
         currentColor: currentColor,
         mcp: {
-            'SSE endpoint': 'GET /sse',
-            'Message handler': 'POST /message'
+            discovery: '/.well-known/mcp',
+            tools: '/mcp/tools',
+            call: '/mcp/call'
         },
-        endpoints: {
+        legacy_api: {
             'GET /api/color': 'Get current color',
-            'POST /api/color/change': 'Change color (body: {color: "rood"})',
-            'GET /health': 'Health check'
+            'POST /api/color/change': 'Change color'
         },
         usage: {
-            chatgpt: 'Connect ChatGPT to https://your-domain.com/sse',
-            description: 'Gebruik tools: change_color en get_current_color'
+            chatgpt: 'Connect ChatGPT to https://mcp.stijnvandepol.nl',
+            description: 'Use tools: change_color and get_current_color'
         }
     });
 });
 
+// Start server
 app.listen(PORT, '0.0.0.0', () => {
-    console.error(`MCP Color Server running on port ${PORT}`);
-    console.error(`Current color: ${currentColor.name} (${currentColor.hex})`);
-    console.error(`MCP SSE endpoint: http://localhost:${PORT}/sse`);
+    console.log(`MCP Color Server running on port ${PORT}`);
+    console.log(`Current color: ${currentColor.name} (${currentColor.hex})`);
+    console.log(`MCP Discovery: http://localhost:${PORT}/.well-known/mcp`);
+    console.log(`MCP Tools: http://localhost:${PORT}/mcp/tools`);
+    console.log(`MCP Call: http://localhost:${PORT}/mcp/call`);
 });
