@@ -1,41 +1,130 @@
-name: Build and Deploy
+name: Deploy Newest version
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
-    runs-on: ubuntu-latest  
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-
-    - name: Log in to Docker Hub
-      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
-    - name: Build the Docker image
-      run: docker build -t stijn0vp/linktree:latest .
-
-    - name: Push Docker image to Docker Hub
-      run: docker push stijn0vp/linktree:latest
-
   deploy:
     runs-on: [self-hosted]
-    needs: build 
+
+    env:
+      COMPOSE_PROJECT_NAME: tanknu
+      PRESERVE_DB: ${{ vars.PRESERVE_DB || 'false' }}
 
     steps:
-    - name: Deploy container
-      run: |
-        docker ps -q -f name=linktree && docker stop linktree || echo "Container linktree is not running"
+      - name: Pre-clean workspace
+        shell: bash
+        run: |
+          set -e
+          shopt -s dotglob nullglob
+          if [ -d "$GITHUB_WORKSPACE" ]; then
+            rm -rf "$GITHUB_WORKSPACE"/* || true
+          fi
 
-        docker ps -a -q -f name=linktree && docker rm linktree || echo "Container linktree does not exist"
+      - name: Checkout fresh
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
 
-        docker images -q stijn0vp/linktree:latest && docker image rm stijn0vp/linktree:latest || echo "Image stijn0vp/linktree:latest does not exist locally"
+      - name: Detect docker compose
+        id: dccmd
+        shell: bash
+        run: |
+          if docker compose version >/dev/null 2>&1; then
+            echo "cmd=docker compose" >> "$GITHUB_OUTPUT"
+          elif docker-compose version >/dev/null 2>&1; then
+            echo "cmd=docker-compose" >> "$GITHUB_OUTPUT"
+          else
+            echo "Geen docker compose gevonden" >&2
+            exit 1
+          fi
 
-        docker pull stijn0vp/linktree:latest
+      - name: Validate compose
+        shell: bash
+        run: |
+          DC="${{ steps.dccmd.outputs.cmd }}"
+          $DC config >/dev/null
 
-        docker run --restart always -d -p 8081:80 --name linktree stijn0vp/linktree:latest
-        docker ps -a
+      - name: Full stop & wipe (stop alles, inclusief volumes)
+        shell: bash
+        run: |
+          set -e
+          DC="${{ steps.dccmd.outputs.cmd }}"
+          echo ">>> Compose down (all containers, networks, images)" 
+          if [ "${PRESERVE_DB}" = "true" ]; then
+            echo "DB preservatie actief -> compose down zonder volumes"
+            $DC down --remove-orphans --rmi all || true
+          else
+            echo "Volledige wipe -> compose down inclusief volumes"
+            $DC down --remove-orphans --rmi all --volumes || true
+          fi
+
+          echo ">>> Stop ALLE losse containers (failsafe)"
+          if [ -n "$(docker ps -q)" ]; then
+            docker stop $(docker ps -q) || true
+          fi
+          if [ -n "$(docker ps -aq)" ]; then
+            docker rm -f $(docker ps -aq) || true
+          fi
+
+          if [ "${PRESERVE_DB}" != "true" ]; then
+            echo ">>> Prune volumes/networks/images/cache (hard)"
+            docker volume prune -f || true
+          else
+            echo ">>> Volumes worden behouden (PRESERVE_DB=true)"
+          fi
+          docker network prune -f || true
+          docker image prune -f || true
+          docker builder prune -f || true
+          docker system prune -f || true
+
+      - name: Build fresh & up
+        shell: bash
+        run: |
+          set -e
+          DC="${{ steps.dccmd.outputs.cmd }}"
+
+          echo ">>> Build images with --no-cache and pull latest bases"
+          $DC build --pull --no-cache
+
+          echo ">>> Bring stack up clean using existing DB volume"
+          $DC up -d --remove-orphans --renew-anon-volumes
+
+      - name: Health check website
+        shell: bash
+        run: |
+          set -e
+          echo ">>> Wacht tot website gezond is"
+          ATTEMPTS=30
+          SLEEP=5
+          URL="http://localhost:8080/"
+          for i in $(seq 1 $ATTEMPTS); do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || true)
+            if [ "$CODE" = "200" ]; then
+              echo "Website OK (200) na $i pogingen"
+              exit 0
+            fi
+            echo "Nog niet gezond (code=$CODE), poging $i/$ATTEMPTS"; sleep $SLEEP
+          done
+          echo "Website niet gezond binnen timeout" >&2
+          exit 1
+
+      - name: Status
+        shell: bash
+        run: |
+          DC="${{ steps.dccmd.outputs.cmd }}"
+          echo "== Compose ps =="
+          $DC ps || true
+
+          echo "== docker ps =="
+          docker ps || true
+          echo "== Volumes on host =="
+          docker volume ls || true
