@@ -16,7 +16,7 @@ const HeroSection = () => {
     }} />
 
       {/* Content */}
-      <div className="relative z-10 text-center px-4 max-w-4xl mx-auto w-full">
+      <div className="relative z-10 w-full max-w-4xl mx-auto px-6 text-center">
         {/* Decorative icon */}
         <div className="flex justify-center mb-6">
           <div className="p-4 border border-primary/30 rounded-full">
