@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Scissors } from "lucide-react";
 const HeroSection = () => {
   const handleBooking = () => {
-    window.open("https://calendar.app.google/oWaY5yGife9qiLbB9", "_blank");
+    window.open("https://wa.me/31628293223?text=Ik wil een afspraak maken, wanneer heb je tijd", "_blank");
   };
   const scrollToServices = () => {
     document.getElementById("diensten")?.scrollIntoView({
@@ -14,9 +14,9 @@ const HeroSection = () => {
       <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{
       backgroundImage: `linear-gradient(to bottom, hsl(20 14% 8% / 0.7), hsl(20 14% 8% / 0.9)), url('https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=2074&auto=format&fit=crop')`
     }} />
-      
+
       {/* Content */}
-      <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
+      <div className="relative z-10 text-center px-4 max-w-4xl mx-auto w-full">
         {/* Decorative icon */}
         <div className="flex justify-center mb-6">
           <div className="p-4 border border-primary/30 rounded-full">
@@ -44,7 +44,7 @@ const HeroSection = () => {
             Maak een afspraak
           </Button>
           <Button onClick={scrollToServices} variant="outline" size="lg" className="border-primary/40 text-foreground hover:bg-primary/10 hover:text-foreground px-8 py-6 text-lg">
-            Bekijk onze diensten
+            Bekijk diensten
           </Button>
         </div>
       </div>

@@ -49,7 +49,6 @@ const AboutSection = () => {
                 Kom langs. Neem een kop koffie. En loop eruit zoals je eruit wilt zien.
               </p>
             </div>
-
           </div>
         </div>
       </div>
