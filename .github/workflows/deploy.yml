@@ -1,14 +1,9 @@
 name: Deploy Newest version
 
 on:
-  workflow_dispatch:
-
-permissions:
-  contents: read
-
-concurrency:
-  group: deploy-${{ github.ref }}
-  cancel-in-progress: true
+  push:
+    branches:
+      - main
 
 jobs:
   deploy:
