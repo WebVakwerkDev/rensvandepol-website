@@ -50,21 +50,6 @@ const AboutSection = () => {
               </p>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-6 mt-10 pt-10 border-t border-border">
-              <div>
-                <span className="text-3xl md:text-4xl font-bold text-primary">15+</span>
-                <p className="text-sm text-muted-foreground mt-1">Jaar ervaring</p>
-              </div>
-              <div>
-                <span className="text-3xl md:text-4xl font-bold text-primary">5000+</span>
-                <p className="text-sm text-muted-foreground mt-1">Tevreden klanten</p>
-              </div>
-              <div>
-                <span className="text-3xl md:text-4xl font-bold text-primary">4.9</span>
-                <p className="text-sm text-muted-foreground mt-1">Beoordeling</p>
-              </div>
-            </div>
           </div>
         </div>
       </div>

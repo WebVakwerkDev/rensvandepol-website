@@ -1,48 +1,27 @@
 import { Scissors } from "lucide-react";
 
+
 interface Service {
   name: string;
   description: string;
-  price: string;
-  duration: string;
 }
 
 const services: Service[] = [
   {
     name: "Knippen",
     description: "Klassiek geknipt met schaar en tondeuse. Inclusief wassen en stylen.",
-    price: "€25",
-    duration: "30 min",
   },
   {
-    name: "Knippen + Baard",
-    description: "Complete behandeling. Haar én baard op punt. De volledige ervaring.",
-    price: "€38",
-    duration: "45 min",
+    name: "Opscheren",
+    description: "Zijkanten strak opgeschoren voor een cleane look.",
   },
   {
-    name: "Baard trimmen",
-    description: "Strakke lijnen, verzorgd met warme handdoek en balsem.",
-    price: "€18",
-    duration: "20 min",
+    name: "Fade",
+    description: "Vloeiende overgangen van kort naar lang. Modern vakwerk.",
   },
   {
-    name: "Scheren",
-    description: "Old-school straight razor shave. Warm kompres, precies zoals vroeger.",
-    price: "€25",
-    duration: "30 min",
-  },
-  {
-    name: "Fade / Skin Fade",
-    description: "Van kort naar lang, vloeiende overgangen. Modern vakwerk.",
-    price: "€28",
-    duration: "35 min",
-  },
-  {
-    name: "Kids (t/m 12 jaar)",
-    description: "Relaxte knipbeurt voor de kleine man. Geduld inbegrepen.",
-    price: "€18",
-    duration: "20 min",
+    name: "Beardtrim",
+    description: "Baard netjes bijgewerkt en in vorm gebracht.",
   },
 ];
 
@@ -77,19 +56,9 @@ const ServicesSection = () => {
               key={index}
               className="group bg-card/50 border border-border hover:border-primary/40 p-6 md:p-8 transition-all duration-300"
             >
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-xl md:text-2xl font-semibold text-foreground group-hover:text-primary transition-colors">
-                    {service.name}
-                  </h3>
-                  <span className="text-sm text-muted-foreground">
-                    {service.duration}
-                  </span>
-                </div>
-                <span className="text-2xl md:text-3xl font-bold text-primary">
-                  {service.price}
-                </span>
-              </div>
+              <h3 className="text-xl md:text-2xl font-semibold text-foreground group-hover:text-primary transition-colors mb-4">
+                {service.name}
+              </h3>
               <p className="text-muted-foreground leading-relaxed">
                 {service.description}
               </p>
