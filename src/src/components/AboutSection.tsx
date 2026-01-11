@@ -24,12 +24,12 @@ const AboutSection = () => {
             <div className="flex items-center gap-3 mb-4">
               <Scissors className="w-5 h-5 text-primary" />
               <span className="text-primary uppercase tracking-widest text-sm font-medium">
-                Over Ons
+                Over mij
               </span>
             </div>
             
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Waar vakmanschap nog telt
+              Waar vakmanschap telt
             </h2>
             
             <div className="gold-line w-20 mb-8" />
@@ -38,15 +38,15 @@ const AboutSection = () => {
               <p>
                 Bij Barber Dolly draait het om meer dan alleen knippen. Het gaat om rust, 
                 aandacht en een stijl die bij jou past. Geen haast, geen drukte. 
-                Gewoon goed vakwerk.
+                Gewoon goed werk.
               </p>
               <p>
-                Met meer dan 15 jaar ervaring in het vak weten we precies wat werkt. 
-                Of je nou komt voor een klassieke fade, een strakke baard of gewoon 
-                even bijknippen — je zit altijd goed.
+                Met mijn ervaring in het vak weet ik precies wat werkt. 
+                Of je nou komt voor een fade of gewoon 
+                even bijknippen, het zit altijd goed.
               </p>
               <p className="text-foreground font-medium">
-                Kom langs. Neem een kop koffie. En loop eruit zoals je eruit wilt zien.
+                Kom langs. En loop eruit zoals je eruit wilt zien.
               </p>
             </div>
           </div>

@@ -3,11 +3,11 @@ import { Phone, MessageCircle, Calendar, Instagram } from "lucide-react";
 
 const ContactSection = () => {
   const handleBooking = () => {
-    window.open("https://wa.me/31628293223?text=Ik wil een afspraak maken, wanneer heb je tijd", "_blank");
+    window.open("https://wa.me/31628293223?text=Ik wil een afspraak maken, wanneer heb je tijd?", "_blank");
   };
 
   const handleWhatsApp = () => {
-    window.open("https://wa.me/31628293223?text=Ik wil een afspraak maken, wanneer heb je tijd", "_blank");
+    window.open("https://wa.me/31628293223?text=Ik wil een afspraak maken, wanneer heb je tijd?", "_blank");
   };
 
   return (
