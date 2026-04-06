@@ -17,6 +17,7 @@ const mobileMenu = document.getElementById('mobileMenu');
 navToggle.addEventListener('click', () => {
     const isOpen = mobileMenu.classList.toggle('open');
     navToggle.classList.toggle('open', isOpen);
+    navToggle.setAttribute('aria-expanded', isOpen);
     document.body.style.overflow = isOpen ? 'hidden' : '';
 });
 
@@ -34,12 +35,11 @@ window.addEventListener('scroll', () => {
 }, { passive: true });
 
 // ── Hero entrance ─────────────────────────────────────────
-// Triggered by timeout, not IntersectionObserver, so it always runs.
+// One timeout — CSS transition-delay handles the stagger per element.
 window.addEventListener('DOMContentLoaded', () => {
-    const heroEls = document.querySelectorAll('.hero-reveal');
-    heroEls.forEach((el, i) => {
-        setTimeout(() => el.classList.add('visible'), 80 + i * 20);
-    });
+    setTimeout(() => {
+        document.querySelectorAll('.hero-reveal').forEach(el => el.classList.add('visible'));
+    }, 80);
 });
 
 // ── Scroll reveal ─────────────────────────────────────────
@@ -56,6 +56,22 @@ const revealObserver = new IntersectionObserver((entries) => {
 });
 
 document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+// ── Active nav link on scroll ─────────────────────────────
+const navLinks = document.querySelectorAll('.nav-link');
+
+const sectionObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            navLinks.forEach(link => {
+                link.classList.toggle('active',
+                    link.getAttribute('href') === `#${entry.target.id}`);
+            });
+        }
+    });
+}, { rootMargin: '-35% 0px -60% 0px' });
+
+document.querySelectorAll('section[id]').forEach(s => sectionObserver.observe(s));
 
 // ── WhatsApp booking ──────────────────────────────────────
 function handleBooking() {

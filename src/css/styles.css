@@ -313,11 +313,13 @@ a   { text-decoration: none; color: inherit; }
     transition: width 0.25s var(--ease-out);
 }
 
-.nav-link:hover {
+.nav-link:hover,
+.nav-link.active {
     color: var(--gold);
 }
 
-.nav-link:hover::after { width: 100%; }
+.nav-link:hover::after,
+.nav-link.active::after { width: 100%; }
 
 /* Hamburger */
 .nav-toggle {
@@ -379,6 +381,7 @@ a   { text-decoration: none; color: inherit; }
 ============================================================ */
 .hero-section {
     position: relative;
+    min-height: 100vh;
     min-height: 100svh;
     display: flex;
     align-items: center;
@@ -707,6 +710,11 @@ a   { text-decoration: none; color: inherit; }
     padding: 0.2rem 0.75rem;
     border-radius: 2rem;
 }
+
+/* Staggered entrance per service item */
+.service-item:nth-child(2) { transition-delay: 0.1s; }
+.service-item:nth-child(3) { transition-delay: 0.18s; }
+.service-item:nth-child(4) { transition-delay: 0.26s; }
 
 .services-note {
     margin-top: 3rem;
