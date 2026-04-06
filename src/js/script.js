@@ -1,9 +1,5 @@
 'use strict';
 
-// ── Progressive enhancement ───────────────────────────────
-// Enables opacity:0 reveal system. Without this, content is always visible.
-document.documentElement.classList.add('js-loaded');
-
 // ── Year ──────────────────────────────────────────────────
 document.getElementById('year').textContent = new Date().getFullYear();
 

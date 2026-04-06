@@ -201,41 +201,40 @@ a   { text-decoration: none; color: inherit; }
 
 /* ============================================================
    REVEAL ANIMATIONS
-   Progressive enhancement: content is visible by default.
-   JS adds .js-loaded to <html>, which enables the hide+reveal.
+   Elements are ALWAYS visible. .visible adds a cosmetic entrance
+   animation. If JS fails, content remains fully visible.
 ============================================================ */
-.reveal {
-    transition: opacity 0.65s var(--ease-out), transform 0.65s var(--ease-out);
+@keyframes revealUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
-.js-loaded .reveal {
-    opacity: 0;
-    transform: translateY(22px);
+@keyframes revealFade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
 }
 
-.js-loaded .reveal.visible {
-    opacity: 1;
-    transform: translateY(0);
+.reveal.visible {
+    animation: revealUp 0.65s var(--ease-out) both;
 }
 
-.reveal-delay-1 { transition-delay: 0.12s; }
-.reveal-delay-2 { transition-delay: 0.22s; }
-.reveal-delay-3 { transition-delay: 0.34s; }
+.reveal-delay-1.visible { animation-delay: 0.12s; }
+.reveal-delay-2.visible { animation-delay: 0.22s; }
+.reveal-delay-3.visible { animation-delay: 0.34s; }
 
-/* Hero has its own entrance (not scroll-triggered) */
-.hero-reveal {
-    transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out);
+/* Hero entrance — plays on page load via JS timeout */
+@keyframes heroIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
-.js-loaded .hero-reveal {
-    opacity: 0;
-    transform: translateY(18px);
+.hero-reveal.visible {
+    animation: heroIn 0.7s var(--ease-out) both;
 }
 
-.js-loaded .hero-reveal.visible { opacity: 1; transform: translateY(0); }
-.hero-reveal-1 { transition-delay: 0.15s; }
-.hero-reveal-2 { transition-delay: 0.28s; }
-.hero-reveal-3 { transition-delay: 0.42s; }
+.hero-reveal-1.visible { animation-delay: 0.15s; }
+.hero-reveal-2.visible { animation-delay: 0.28s; }
+.hero-reveal-3.visible { animation-delay: 0.42s; }
 
 /* ============================================================
    NAVBAR
@@ -642,10 +641,7 @@ a   { text-decoration: none; color: inherit; }
     gap: 0 1.75rem;
     padding: 2.25rem 0;
     border-top: 1px solid rgba(255, 255, 255, 0.055);
-    /* Include opacity + transform so .reveal animation isn't overridden */
-    transition: border-color 0.3s ease,
-                opacity 0.65s var(--ease-out),
-                transform 0.65s var(--ease-out);
+    transition: border-color 0.3s ease;
     cursor: default;
     position: relative;
 }
