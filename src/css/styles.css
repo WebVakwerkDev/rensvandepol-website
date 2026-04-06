@@ -201,14 +201,19 @@ a   { text-decoration: none; color: inherit; }
 
 /* ============================================================
    REVEAL ANIMATIONS
+   Progressive enhancement: content is visible by default.
+   JS adds .js-loaded to <html>, which enables the hide+reveal.
 ============================================================ */
 .reveal {
-    opacity: 0;
-    transform: translateY(22px);
     transition: opacity 0.65s var(--ease-out), transform 0.65s var(--ease-out);
 }
 
-.reveal.visible {
+.js-loaded .reveal {
+    opacity: 0;
+    transform: translateY(22px);
+}
+
+.js-loaded .reveal.visible {
     opacity: 1;
     transform: translateY(0);
 }
@@ -219,12 +224,15 @@ a   { text-decoration: none; color: inherit; }
 
 /* Hero has its own entrance (not scroll-triggered) */
 .hero-reveal {
-    opacity: 0;
-    transform: translateY(18px);
     transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out);
 }
 
-.hero-reveal.visible { opacity: 1; transform: translateY(0); }
+.js-loaded .hero-reveal {
+    opacity: 0;
+    transform: translateY(18px);
+}
+
+.js-loaded .hero-reveal.visible { opacity: 1; transform: translateY(0); }
 .hero-reveal-1 { transition-delay: 0.15s; }
 .hero-reveal-2 { transition-delay: 0.28s; }
 .hero-reveal-3 { transition-delay: 0.42s; }
@@ -634,7 +642,10 @@ a   { text-decoration: none; color: inherit; }
     gap: 0 1.75rem;
     padding: 2.25rem 0;
     border-top: 1px solid rgba(255, 255, 255, 0.055);
-    transition: border-color 0.3s ease;
+    /* Include opacity + transform so .reveal animation isn't overridden */
+    transition: border-color 0.3s ease,
+                opacity 0.65s var(--ease-out),
+                transform 0.65s var(--ease-out);
     cursor: default;
     position: relative;
 }
