@@ -33,6 +33,38 @@
 
 html { scroll-behavior: smooth; }
 
+/* ============================================================
+   VACATION BANNER
+============================================================ */
+.vacation-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 101;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: rgba(201, 168, 76, 0.12);
+    border-bottom: 1px solid var(--gold-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--gold);
+    text-transform: uppercase;
+    padding: 0 1rem;
+}
+
+.vacation-banner svg {
+    flex-shrink: 0;
+    opacity: 0.8;
+}
+
 body {
     font-family: var(--font-body);
     background-color: var(--dark);
@@ -241,7 +273,7 @@ a   { text-decoration: none; color: inherit; }
 ============================================================ */
 .navbar {
     position: fixed;
-    top: 0;
+    top: 36px;
     left: 0;
     right: 0;
     z-index: 100;
@@ -939,6 +971,12 @@ a   { text-decoration: none; color: inherit; }
 /* ============================================================
    RESPONSIVE — MOBILE FIRST
 ============================================================ */
+
+/* < 480px — mobile: hide hero elements replaced by vacation banner */
+@media (max-width: 479px) {
+    .hero-sub { display: none; }
+    .hero-actions { display: none; }
+}
 
 /* ≥ 480px */
 @media (min-width: 480px) {
